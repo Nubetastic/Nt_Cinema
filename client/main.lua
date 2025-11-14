@@ -221,6 +221,9 @@ StartShow = function(show, projection, movie)
 			end
 			Citizen.InvokeNative(0x84EEDB2C6E650000, animscene)
 		end
+		if Globals and Globals.__LastLoc then
+			TriggerServerEvent('nt_cinema_tickets:notifyShowEnded', Globals.__LastLoc)
+		end
 	end
 end
 

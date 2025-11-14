@@ -1,5 +1,24 @@
 TicketConfig = {}
 
+TicketConfig.SpawnDistance = 40
+
+TicketConfig.NPCActions = {
+    "WORLD_HUMAN_STAND_WAITING",
+    "WORLD_HUMAN_STAND_WAITING",
+    "WORLD_HUMAN_STAND_WAITING",
+    "WORLD_HUMAN_STAND_WAITING",
+    "WORLD_HUMAN_SHOP_BROWSE_COUNTER",
+    "WORLD_HUMAN_SHOP_BROWSE_COUNTER",
+    "WORLD_HUMAN_SHOP_BROWSE_COUNTER",
+    "WORLD_HUMAN_SHOP_BROWSE_COUNTER",
+    "WORLD_HUMAN_WRITE_NOTEBOOK",
+    "WORLD_HUMAN_COFFEE_DRINK",
+    "WORLD_HUMAN_COFFEE_DRINK",
+}
+
+TicketConfig.TimeToShow = 60000  -- time in milliseconds before show starts after being triggered
+TicketConfig.NotifyToShow = "1 minute"
+
 TicketConfig.ShowPrice = {
     Cinema = 10,
     Tent = 5,

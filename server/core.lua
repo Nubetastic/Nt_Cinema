@@ -90,6 +90,12 @@ local function sendMenuStateFor(src, loc)
   if st.status == 'sales_open' then
     payload.shows = availableShows[loc] or {}
     payload.nextRotateAt = nextRotateAt
+  elseif st.status == 'running' then
+    if st.endAt then
+      local rem = st.endAt - GetGameTimer()
+      if rem < 0 then rem = 0 end
+      payload.nextShowInMinutes = math.max(0, math.ceil(rem / 60000))
+    end
   end
   TriggerClientEvent('nt_cinema_tickets:menuState', src, loc, payload)
 end
@@ -117,11 +123,11 @@ local function startShow(loc, showId)
     if st.ticketHolders[cid] then preHolders[#preHolders+1] = src end
   end
   for _,src in ipairs(preHolders) do
-    TriggerClientEvent('ox_lib:notify', src, { title = 'Show Starting Soon', description = 'Take your seats. Starting in 15 seconds', type = 'inform', duration = 5000 })
+    TriggerClientEvent('ox_lib:notify', src, { title = 'Show Starting Soon', description = ('Take your seats. Starting in %s'):format(TicketConfig.NotifyToShow), type = 'inform', duration = 10000 })
   end 
-  SetTimeout(15000, function()
+  SetTimeout(TicketConfig.TimeToShow, function()
     st.startAt = GetGameTimer()
-    st.endAt = st.startAt + (TicketAddon.DefaultDuration or 300000)
+    st.endAt = nil
     local payload = computePayload(loc, showId)
     local holders = {}
     for _,src in ipairs(RSGCore.Functions.GetPlayers()) do
@@ -136,16 +142,6 @@ local function startShow(loc, showId)
       if st.timer.cancel then st.timer:cancel() end
       st.timer = nil
     end
-    SetTimeout(TicketAddon.DefaultDuration or 300000, function()
-      local s = ensureLoc(loc)
-      s.status = 'sales_open'
-      s.pinnedShowId = nil
-      s.ticketHolders = {}
-      s.timer = nil
-      s.startAt = nil
-      s.endAt = nil
-      broadcastShowEnded(loc)
-    end)
   end)
 end
 
@@ -162,7 +158,14 @@ AddEventHandler('nt_cinema_tickets:buyTicket', function(loc, showId)
   if not loc or not showId then return end
   local st = ensureLoc(loc)
   if st.status == 'running' then
-    TriggerClientEvent('ox_lib:notify', src, { title = 'Busy', description = 'Show already running', type = 'error', duration = 5000 })
+    if st.endAt then
+      local rem = st.endAt - GetGameTimer()
+      if rem < 0 then rem = 0 end
+      local mins = math.max(0, math.ceil(rem / 60000))
+      TriggerClientEvent('ox_lib:notify', src, { title = 'Busy', description = ('Show already running. Next show in %d minutes'):format(mins), type = 'error', duration = 5000 })
+    else
+      TriggerClientEvent('ox_lib:notify', src, { title = 'Busy', description = 'Show already running', type = 'error', duration = 5000 })
+    end
     return
   end
   if not isShowAllowed(loc, showId) then
@@ -210,6 +213,19 @@ AddEventHandler('nt_cinema_tickets:tryStartPinnedShow', function(loc)
     return
   end
   startShow(loc, st.pinnedShowId)
+end)
+
+RegisterNetEvent('nt_cinema_tickets:notifyShowEnded')
+AddEventHandler('nt_cinema_tickets:notifyShowEnded', function(loc)
+  if not loc then return end
+  local s = ensureLoc(loc)
+  s.status = 'sales_open'
+  s.pinnedShowId = nil
+  s.ticketHolders = {}
+  s.timer = nil
+  s.startAt = nil
+  s.endAt = nil
+  broadcastShowEnded(loc)
 end)
 
 CreateThread(function()

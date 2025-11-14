@@ -1,5 +1,5 @@
 TicketAddon = {}
-TicketAddon.DefaultDuration = 300000
+
 TicketAddon.LocationProjection = {
   ["Blackwater"] = "BLACKWATER",
   ["Valentine"] = "VALENTINE",

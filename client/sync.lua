@@ -1,5 +1,7 @@
 RegisterNetEvent('nt_cinema_tickets:startShow')
 AddEventHandler('nt_cinema_tickets:startShow', function(loc, showId, startAt, endAt)
+  Globals = Globals or {}
+  Globals.__LastLoc = loc
   if Globals and Globals.Shows and Globals.Shows[showId] then
     StartShow(showId)
   else

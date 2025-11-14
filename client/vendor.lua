@@ -2,23 +2,47 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 local Vendors = {}
 local SpawnedPeds = {}
 
+local function startNpcAction(ped, loc)
+  if not TicketConfig or not TicketConfig.NPCActions or #TicketConfig.NPCActions == 0 then return end
+  local act = TicketConfig.NPCActions[math.random(1, #TicketConfig.NPCActions)]
+  if type(act) == 'string' then
+    -- try scenario in place first
+    if TaskStartScenarioInPlace then
+      TaskStartScenarioInPlace(ped, act, -1, true, false, false, false)
+    else
+      local hash = GetHashKey(act)
+      Citizen.InvokeNative(0x4D1F61FC34AF3CD1, ped, hash, -1, true, false, 0, false)
+    end
+  end
+end
+
+local function despawnLocalVendor(loc)
+  local ped = SpawnedPeds[loc]
+  if ped and DoesEntityExist(ped) then
+    ClearPedTasksImmediately(ped, true, true)
+    DeleteEntity(ped)
+  end
+  SpawnedPeds[loc] = nil
+end
+
 local function spawnLocalVendor(loc, data)
   if SpawnedPeds[loc] and DoesEntityExist(SpawnedPeds[loc]) then return end
   if not data.NPC_Cords or not data.NPC_Model then return end
   local model = type(data.NPC_Model) == 'string' and GetHashKey(data.NPC_Model) or data.NPC_Model
   RequestModel(model)
   while not HasModelLoaded(model) do Wait(10) end
-  local ped = CreatePed(model, data.NPC_Cords.x, data.NPC_Cords.y, data.NPC_Cords.z - 1.0, data.NPC_Cords.w or 0.0, false, true)
+  local ped = CreatePed(model, data.NPC_Cords.x, data.NPC_Cords.y, data.NPC_Cords.z - 1.0, data.NPC_Cords.w or 0.0, false, false, false, false)
   Wait(100)
   SetEntityAlpha(ped, 255, false)
   Citizen.InvokeNative(0x283978A15512B2FE, ped, true)
   SetEntityAsMissionEntity(ped, true, true)
   SetEntityCanBeDamaged(ped, false)
   SetEntityInvincible(ped, true)
-  FreezeEntityPosition(ped, true)
+  FreezeEntityPosition(ped, false)
   SetPedCanBeTargetted(ped, false)
   SetEntityAsMissionEntity(ped, true, true)
   SpawnedPeds[loc] = ped
+  startNpcAction(ped, loc)
   --SetModelAsNoLongerNeeded(model)
 end
 
@@ -27,7 +51,6 @@ Citizen.CreateThread(function()
   if not TicketConfig or not TicketConfig.TicketVendors then return end
   for loc,data in pairs(TicketConfig.TicketVendors) do
     Vendors[loc] = { showType = data.ShowTypes }
-    spawnLocalVendor(loc, data)
     local promptId = 'Cinema_'..loc
     exports['rsg-core']:createPrompt(promptId, data.Promp_Cords, RSGCore.Shared.Keybinds['J'], 'Show Menu', { type = 'client', event = 'nt_cinema_tickets:open', args = { loc } })
     if data.showblip and data.NPC_Cords then
@@ -36,6 +59,26 @@ Citizen.CreateThread(function()
       SetBlipScale(blip, 0.2)
       Citizen.InvokeNative(0x9CB1A1623062F402, blip, data.LocationName or loc)
     end
+  end
+  while true do
+    local ply = PlayerPedId()
+    local ppos = GetEntityCoords(ply)
+    local sd = (TicketConfig and TicketConfig.SpawnDistance) or 40.0
+    local dd = sd + 15.0
+    for loc,data in pairs(TicketConfig.TicketVendors) do
+      local ped = SpawnedPeds[loc]
+      local dist = #(ppos - vector3(data.NPC_Cords.x, data.NPC_Cords.y, data.NPC_Cords.z))
+      if dist <= sd then
+        if not ped or not DoesEntityExist(ped) then
+          spawnLocalVendor(loc, data)
+        end
+      elseif dist >= dd then
+        if ped and DoesEntityExist(ped) then
+          despawnLocalVendor(loc)
+        end
+      end
+    end
+    Citizen.Wait(250)
   end
 end)
 
@@ -54,7 +97,10 @@ AddEventHandler('nt_cinema_tickets:menuState', function(loc, state)
   local MenuData = exports['rsg-menubase']:GetMenuData()
   MenuData.CloseAll()
   if state.status == 'running' then
-    TriggerEvent('ox_lib:notify', { title = 'Busy', description = 'Show running here', type = 'inform', duration = 4000 })
+    local mins = state.nextShowInMinutes
+    local desc = 'Show running here'
+    if mins ~= nil then desc = ('Show running here. Next show in %d minutes'):format(mins) end
+    TriggerEvent('ox_lib:notify', { title = 'Busy', description = desc, type = 'inform', duration = 4000 })
     return
   end
   if state.status == 'sales_open' then
