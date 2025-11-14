@@ -6,8 +6,8 @@ StartShow = function(show, projection, movie)
 			if IsMovieValid(projection, movie) then
 				movieData = SetupMovie(projection, movie)
 				projection, movie = Config.Projections[projection], Config.Movies[movie]
-			else 
-				print("Invalid movie or projection.") 
+			else
+				print("Invalid movie or projection.")
 				return
 			end
 		end
@@ -17,10 +17,11 @@ StartShow = function(show, projection, movie)
 
 		if animscene then
 			if Config.Shows[show].position then
+
 				SetAnimSceneOrigin(animscene, Config.Shows[show].position, Config.Shows[show].rotation, 2);
 			end
 
-			for index,entity in ipairs(Config.Shows[show].entities) do 
+			for index,entity in ipairs(Config.Shows[show].entities) do
 				local handle = 0
 
 				if IsModelInCdimage(entity.model) or type(entity.model) == "string" then
@@ -29,7 +30,7 @@ StartShow = function(show, projection, movie)
 					end
 
 					if IsModelAPed(entity.model) then
-						handle = CreatePed(entity.model, vector3(0.0, 0.0, -500.0), 0.0, false, false, true, true);			
+						handle = CreatePed(entity.model, vector3(0.0, 0.0, -500.0), 0.0, false, false, true, true);
 						AddEntityToAudioMixGroup(handle, "Default_Show_Performers_Group", -1.0);
 						Citizen.InvokeNative(0x283978A15512B2FE, handle, true)
 
@@ -40,13 +41,13 @@ StartShow = function(show, projection, movie)
 						end
 
 						if entity.ragdoll ~= nil then
-							SetPedCanRagdoll(handle, false)			
+							SetPedCanRagdoll(handle, false)
 						end
 
 						if entity.ragdollFlag then
 							SetRagdollBlockingFlags(handle, entity.ragdollFlag)
 						end
-					elseif type(entity.model) == "string" then	
+					elseif type(entity.model) == "string" then
 						if IsWeaponValid(GetHashKey(entity.model)) then
 							handle = Citizen.InvokeNative(0x9888652B8BA77F73, GetHashKey(entity.model), 0, vector3(0.0, 0.0, 0.0), true, 1.0);
 						end
@@ -59,7 +60,7 @@ StartShow = function(show, projection, movie)
 				end
 			end
 
-			LoadAnimScene(animscene)  
+			LoadAnimScene(animscene)
 			while not _IsAnimSceneLoaded(animscene) do Citizen.Wait(10) end
 
 			local curtain, curtainZone = GetShowCurtain(show)
@@ -67,7 +68,7 @@ StartShow = function(show, projection, movie)
 				ResetCurtain(curtainZone)
 
 				if not _IsAnimSceneLoaded(curtain.animscene) then
-					LoadAnimScene(curtain.animscene)  
+					LoadAnimScene(curtain.animscene)
 					while not _IsAnimSceneLoaded(curtain.animscene) do Citizen.Wait(10) end
 				end
 
@@ -79,21 +80,21 @@ StartShow = function(show, projection, movie)
 
 				PlayCurtainSound(Config.Shows[show].music)
 				SetAnimScenePlaybackList(curtain.animscene, "PBL_OPEN_SLOW")
-				Citizen.InvokeNative(0x15598CFB25F3DC7E, curtain.animscene, "PBL_OPEN_SLOW", true)	
+				Citizen.InvokeNative(0x15598CFB25F3DC7E, curtain.animscene, "PBL_OPEN_SLOW", true)
 
-				if (show == "ESCAPENOOSE") and not rope then 
+				if (show == "ESCAPENOOSE") and not rope then
 					rope, attachment = CreateNooseRope(animscene)
 				end
 
 				while not _IsAnimSceneStarted(curtain.animscene) do Citizen.Wait(10) end
 				while not (_GetAnimsceneProgress(curtain.animscene) > 0.5) do Citizen.Wait(10) end
-			
+
 				SetAnimScenePlaybackList(curtain.animscene, "PBL_IDLE_OPEN")
 				Citizen.InvokeNative(0x15598CFB25F3DC7E, curtain.animscene, "PBL_IDLE_OPEN", true)
 				SetAnimScenePaused(animscene, false)
 			end
 
-			if (show == "ESCAPENOOSE") and not rope then 
+			if (show == "ESCAPENOOSE") and not rope then
 				rope, attachment = CreateNooseRope(animscene)
 			end
 
@@ -101,7 +102,7 @@ StartShow = function(show, projection, movie)
 			if not (show:upper() == "MOVIE") then
 				while not _IsAnimSceneFinished(animscene) do Citizen.Wait(10) end
 			end
-		
+
 			--// Sequences
 			if Config.Shows[show].sequence then
 				for index,transition in ipairs(Config.Shows[show].sequence) do
@@ -148,13 +149,13 @@ StartShow = function(show, projection, movie)
 
 		--// Movie player
 		if (show:upper() == "MOVIE") then
-			if animscene then 
+			if animscene then
 				SetAnimScenePlaybackList(animscene, "pl_action")
 				Citizen.InvokeNative(0x15598CFB25F3DC7E, animscene, "pl_action", true)
-			
+
 				while not _IsAnimSceneStarted(animscene) do Citizen.Wait(10) end
 			end
-		
+
 			SetTvAudioFrontend(false)
 			SetTvVolume(projection.volume)
 
@@ -204,12 +205,12 @@ StartShow = function(show, projection, movie)
 				while not _IsAnimSceneFinished(animscene) do Citizen.Wait(10) end
 			end
 
-			if rope or attachment then 
+			if rope or attachment then
 				DeleteRope(rope)
-				DeleteEntity(attachment) 
+				DeleteEntity(attachment)
 			end
 
-			for index,entity in ipairs(Config.Shows[show].entities) do 
+			for index,entity in ipairs(Config.Shows[show].entities) do
 				if IsModelAPed(entity.model) then
 					DeleteEntity(Citizen.InvokeNative(0xE5822422197BBBA3, animscene, entity.fields[1], false))
 				elseif IsModelAVehicle(entity.model) then
@@ -243,7 +244,7 @@ SetupMovie = function(projection, movie)
 		RegisterNamedRendertarget(projection.renderTarget, false)
 		LinkNamedRendertarget(projection.targetModel)
 
-		if not IsNamedRendertargetLinked(projection.targetModel) then	
+		if not IsNamedRendertargetLinked(projection.targetModel) then
 			ReleaseNamedRendertarget(projection.renderTarget)
 			print('Failed to link Render Target.')
 			return
@@ -335,7 +336,7 @@ _LoadStream = function(soundSet)
 		if timeout > 4 then break end
 		timeout = timeout+1
 
-		Citizen.Wait(25) 
+		Citizen.Wait(25)
 	end
 end
 _IsAnimSceneLoaded = function(animscene)
@@ -397,6 +398,8 @@ IsPromptEnabled = function(name)
 end
 
 CreateBlips = function()
+	local noBlip = true
+	if noBlip then return end
 	for town,data in pairs(Config.Projections) do
         local blip = Citizen.InvokeNative(0x554D9D53F696D002, 0xB04092F8, data.originPos)
         Citizen.InvokeNative(0x9CB1A1623062F402, blip, CreateVarString(10, "LITERAL_STRING", "Theatre"))
@@ -404,7 +407,7 @@ CreateBlips = function()
 
         table.insert(Config.CreatedEntries, { type = "BLIP", handle = blip })
 	end
-	
+
 	local blip = Citizen.InvokeNative(0x554D9D53F696D002, 0xB04092F8, Config.Shows["CANCAN_A"].position)
     Citizen.InvokeNative(0x9CB1A1623062F402, blip, CreateVarString(10, "LITERAL_STRING", "Theatre"))
     SetBlipSprite(blip, `blip_ambient_theatre`)
@@ -412,8 +415,8 @@ CreateBlips = function()
     table.insert(Config.CreatedEntries, { type = "BLIP", handle = blip })
 end
 
-RegisterNetEvent("rdr-theatre:startShow")
-AddEventHandler("rdr-theatre:startShow", function(show)
+RegisterNetEvent("redm_cinema:startShow")
+AddEventHandler("redm_cinema:startShow", function(show)
 	if type(show) == "table" then
 		StartShow("MOVIE", show.town, show.name)
 	else
@@ -431,7 +434,7 @@ AddEventHandler('onResourceStop', function(resource)
 			elseif (entry.type == "PROMPT") then
 				Citizen.InvokeNative(0x00EDE88D4D13CF59, entry.handle)
 			elseif (entry.type == "CAM") then
-				if DoesCamExist(entry.handle) then RenderScriptCams(false, false, 0, false, false, false) DestroyCam(entry.handle) end            
+				if DoesCamExist(entry.handle) then RenderScriptCams(false, false, 0, false, false, false) DestroyCam(entry.handle) end
 			end
 		end
 
